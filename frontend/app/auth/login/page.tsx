@@ -1,5 +1,6 @@
 "use client"
 
+import React, { useState } from "react" // Added useState for error feedback
 import * as z from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -13,8 +14,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { apiRequest } from "@/lib/api";
-import { useRouter } from 'next/dist/client/components/navigation';
+import { apiRequest } from "@/lib/api"
+// FIX: Correct import for App Router
+import { useRouter } from 'next/navigation'
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -24,33 +26,40 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>
 
 export default function LoginPage() {
-  const router = useRouter();
-  const {register, handleSubmit,
+  const router = useRouter()
+  const [authError, setAuthError] = useState<string | null>(null)
+
+  const { register, handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
   })
 
   const onSubmit = async (data: FormData) => {
-  try {
-    // 1. The response is likely already the JSON body
-    const result = await apiRequest("/auth/login", "POST", data);
+    setAuthError(null) // Reset error on new attempt
+    try {
+      const result = await apiRequest("/api/auth/login", "POST", data)
 
-    // 2. Success! (The 'ok' check needs to happen inside apiRequest 
-    // or you need to check for the presence of a token/success flag here)
-    console.log("Login successful:", result);
-    localStorage.setItem("token", result.token); 
-    
-    if(result.user.role === "Healthcare Provider") {
-      router.push('/dashboards/healthcareProvider');
-    } else {  
-      router.push('/dashboards/supplier');
+      if (result && result.token) {
+        localStorage.setItem("token", result.token)
+        
+        // Ensure result.user exists before checking role
+        const userRole = result.user?.role
+        
+        if (userRole === "Healthcare Provider") {
+          router.push('/dashboards/healthcareProvider')
+        } else {
+          router.push('/dashboards/supplier')
+        }
+      } else {
+        setAuthError("Invalid response from server. Please try again.")
+      }
+
+    } catch (err: any) {
+      console.error("Login Error:", err)
+      setAuthError(err.message || "Invalid email or password.")
     }
-
-  } catch (err) {
-    console.error("Login Error:", err);
   }
-};
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-background">
@@ -65,12 +74,20 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             
+            {/* Global Auth Error Feedback */}
+            {authError && (
+              <div className="p-3 text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg">
+                {authError}
+              </div>
+            )}
+
             {/* Email */}
             <div className="space-y-1">
               <label className="text-sm font-medium">Email</label>
               <Input
                 placeholder="name@example.com"
                 {...register("email")}
+                autoComplete="email"
               />
               {errors.email && (
                 <p className="text-sm text-red-500">
@@ -86,6 +103,7 @@ export default function LoginPage() {
                 type="password"
                 placeholder="••••••••"
                 {...register("password")}
+                autoComplete="current-password"
               />
               {errors.password && (
                 <p className="text-sm text-red-500">

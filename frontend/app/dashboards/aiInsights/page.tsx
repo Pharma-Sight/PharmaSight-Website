@@ -1,9 +1,8 @@
 "use client"
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { 
   Accordion, AccordionContent, AccordionItem, AccordionTrigger 
 } from "@/components/ui/accordion"
@@ -11,7 +10,6 @@ import {
   BrainCircuit, 
   Info, 
   Search, 
-  Zap, 
   ShieldCheck, 
   Activity, 
   Database 
@@ -24,14 +22,25 @@ const anomalyData = [
   { time: '00:00', usage: 30 },
   { time: '04:00', usage: 35 },
   { time: '08:00', usage: 40 },
-  { time: '12:00', usage: 95 }, // Anomaly
+  { time: '12:00', usage: 95 },
   { time: '16:00', usage: 50 },
   { time: '20:00', usage: 45 },
 ]
 
 export default function AIInsightsDashboard() {
+  // FIX 1: Hydration Guard
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return <div className="p-6 space-y-6 max-w-[1400px] mx-auto min-h-screen bg-background" />
+  }
+
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+    <div className="p-6 space-y-6 max-w-[1400px] mx-auto animate-in fade-in duration-500">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 text-blue-600">
           <BrainCircuit className="h-6 w-6" />
@@ -41,7 +50,7 @@ export default function AIInsightsDashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Why Prediction Happened - THE CORE WOW FACTOR */}
+        {/* Root Cause Analysis */}
         <Card className="lg:col-span-2 shadow-md border-blue-100">
           <CardHeader className="bg-blue-50/50">
             <CardTitle className="flex items-center gap-2">
@@ -88,11 +97,22 @@ export default function AIInsightsDashboard() {
           </CardHeader>
           <CardContent className="flex-1 flex flex-col justify-center items-center">
             <div className="relative flex items-center justify-center mb-4">
-              <svg className="h-32 w-32">
+              <svg className="h-32 w-32 transform -rotate-90">
                 <circle className="text-slate-100" strokeWidth="10" stroke="currentColor" fill="transparent" r="50" cx="64" cy="64" />
-                <circle className="text-green-500" strokeWidth="10" strokeDasharray={314} strokeDashoffset={314 - (314 * 0.92)} strokeLinecap="round" stroke="currentColor" fill="transparent" r="50" cx="64" cy="64" />
+                <circle 
+                  className="text-green-500 transition-all duration-1000 ease-out" 
+                  strokeWidth="10" 
+                  strokeDasharray={314} 
+                  strokeDashoffset={314 - (314 * 0.92)} 
+                  strokeLinecap="round" 
+                  stroke="currentColor" 
+                  fill="transparent" 
+                  r="50" 
+                  cx="64" 
+                  cy="64" 
+                />
               </svg>
-              <span className="absolute text-3xl font-bold">92%</span>
+              <span className="absolute text-3xl font-bold rotate-90">92%</span>
             </div>
             <p className="text-center text-sm text-muted-foreground px-4">
               High confidence based on <span className="text-blue-600 font-bold">128 data points</span> from 3 separate API sources.
@@ -117,25 +137,30 @@ export default function AIInsightsDashboard() {
             </div>
           </CardHeader>
           <CardContent className="h-[250px] pt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={anomalyData}>
-                <defs>
-                  <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="time" />
-                <YAxis />
-                <Tooltip />
-                <Area type="monotone" dataKey="usage" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorUsage)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {/* FIX 2: Wrapped with explicit check for mounted state */}
+            {mounted && (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={anomalyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="time" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                  />
+                  <Area type="monotone" dataKey="usage" stroke="#8b5cf6" strokeWidth={2} fillOpacity={1} fill="url(#colorUsage)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
-        {/* Data Sources / Training Data Info */}
+        {/* Data Sources Info */}
         <Card className="md:col-span-4">
           <CardHeader>
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -158,7 +183,7 @@ export default function AIInsightsDashboard() {
             <div className="mt-4 p-3 bg-purple-50 rounded-lg text-xs flex gap-2 border border-purple-100">
               <Info className="h-4 w-4 text-purple-600 shrink-0" />
               <p className="text-purple-900 leading-tight">
-                <strong>Why 92%?</strong> Model accuracy is limited by "Regional CDC Data" being 2 hours behind real-time.
+                <strong>Why 92%?</strong> Model accuracy is limited by &quot;Regional CDC Data&quot; being 2 hours behind real-time.
               </p>
             </div>
           </CardContent>

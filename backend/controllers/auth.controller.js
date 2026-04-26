@@ -5,13 +5,12 @@ import Organization from "../models/organization.model.js";
 import { generateToken } from "../utils/jwt.js";
 export const register = async (req, res) => {
   const { name, email, password, role, organizationName, country, state, city, district, pincode } = req.body;
-  
+  console.log("REGISTER BODY:", req.body);
   try {
     // FIX 1: Ensure 'body' is defined or just use the destructured variables
     if (!name || !email || !password || password.length < 6 || !role || !organizationName || !pincode) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-
     // FIX 2: Use res.status().json() instead of Response.json() (standard Express)
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -29,7 +28,8 @@ export const register = async (req, res) => {
       organization = await Organization.create({
         name: organizationName,
         type: role, // Ensure 'role' matches your 'type' enum exactly
-        location: { country, state, city, district, pincode }
+        location: { country, state, city, district, pincode },
+        isVerified: role === "Pharmaceutical Supplier"
       });
     } else {
       // Type matching logic
