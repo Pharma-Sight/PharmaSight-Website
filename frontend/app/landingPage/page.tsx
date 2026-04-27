@@ -402,17 +402,10 @@ export default function PharmaSightLanding() {
                 </div>
                 <div className="md:order-1 text-lg text-slate-600 leading-relaxed space-y-6">
                   <p>
-                    PharmaSight transforms the procurement process from a guessing game into a 
-                    data-driven science. By integrating directly with hospital inventory systems, 
-                    we analyze "Usage Velocity"—the speed at which different drugs are being 
-                    consumed across departments.
+                    PharmaSight transforms hospital procurement from reactive guesswork into a precise, data-driven system. Our AI microservice continuously analyzes critical operational inputs such as current inventory levels, daily consumption rates, expiry dates, reorder thresholds, supplier lead times, pending purchase orders, department-wise demand patterns, seasonal trends, and historical shortage events. It also factors in external signals like supply chain disruptions, manufacturing delays, regional demand surges, and logistics risks. By combining these inputs, PharmaSight measures true usage velocity, predicts future stock depletion timelines, and forecasts what each facility will need weeks in advance.
                   </p>
                   <p>
-                    Our proprietary algorithms don't just look at what you have today; they 
-                    forecast what you will need three weeks from now. By correlating internal 
-                    usage data with external supply signals, PharmaSight provides a centralized 
-                    command center where procurement officers can see pending shortages 
-                    long before they become emergencies.
+                    Our proprietary algorithms don't just look at what you have today, the platform reveals what will run out tomorrow. Procurement teams receive early warnings, risk scores, and smart replenishment recommendations through a centralized dashboard, allowing them to reorder sooner, optimize vendor decisions, reduce waste from expiries, and ensure critical medicines remain available when patients need them most.
                   </p>
                 </div>
               </div>
@@ -428,16 +421,10 @@ export default function PharmaSightLanding() {
                 </div>
                 <div className="text-lg text-slate-600 leading-relaxed space-y-6">
                   <p>
-                    The result is a resilient healthcare infrastructure. Facilities using PharmaSight 
-                    have seen a significant reduction in emergency drug procurement costs and a 
-                    drastic decrease in "Stock-Out" events.
+                    PharmaSight creates a unified ecosystem where healthcare providers and suppliers operate through one trusted platform, replacing fragmented calls, spreadsheets, and last-minute scrambling with coordinated action. Hospitals and healthcare providers can upload inventory data in bulk, instantly analyze stock risk through AI, detect upcoming shortages, and place orders before supply gaps affect patient care.
                   </p>
                   <p>
-                    Beyond the numbers, the impact is felt in the quality of care. Doctors can 
-                    prescribe with confidence, knowing the inventory will be there. Suppliers can 
-                    optimize their delivery routes based on predicted needs, and most importantly, 
-                    patients receive uninterrupted treatment. We are moving healthcare from panic 
-                    mode to prediction mode.
+                    On the supply side, verified suppliers receive requests, review demand in real time, and dispatch orders efficiently through a transparent workflow. This connected system shortens procurement cycles, improves trust through supplier verification, reduces medicine stockouts, minimizes waste from over-ordering or expired inventory, and enables faster response during emergencies. By turning disconnected procurement steps into one intelligent pipeline, PharmaSight helps ensure critical medicines reach the right place at the right time.
                   </p>
                 </div>
               </div>

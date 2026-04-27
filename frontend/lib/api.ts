@@ -1,5 +1,5 @@
 // lib/api.ts
-const EXPRESS_URL = process.env.NEXT_PUBLIC_EXPRESS_URL || "https://pharmasight-website.onrender.com";
+const EXPRESS_URL = process.env.NEXT_PUBLIC_EXPRESS_URL || "http://localhost:5000" || "https://pharmasight-website.onrender.com";
 const AI_URL = process.env.NEXT_PUBLIC_AI_URL || "https://pharma-site-ai.onrender.com";
 
 type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH"; // Added PATCH method

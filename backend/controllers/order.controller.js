@@ -46,10 +46,17 @@ export const createBulkOrders = async (req, res) => {
 
 export const getMyOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ hospitalId: req.user.id }).sort({ createdAt: -1 });
-    res.json(orders);
+    // 1. Filter by organizationId because hospitalId in DB is an Org ID
+    // 2. Populate 'supplierId' to get the name of the Pharmaceutical Company
+    const orders = await Order.find({ hospitalId: req.user.organizationId })
+      .populate("supplierId", "name location") 
+      .sort({ createdAt: -1 });
+    res.status(200).json(orders);
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch orders" });
+    res.status(500).json({ 
+      message: "Failed to fetch healthcare provider orders", 
+      error: error.message 
+    });
   }
 };
 
@@ -60,7 +67,6 @@ export const getSupplierOrders = async (req, res) => {
     const orders = await Order.find({ supplierId: req.user.organizationId })
       .populate("hospitalId", "name location") // Get hospital details for the dashboard
       .sort({ createdAt: -1 });
-      console.log("DEBUG ORDERS:", JSON.stringify(orders, null, 2));
     res.status(200).json(orders);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch supplier orders", error: error.message });

@@ -69,7 +69,7 @@ const Button = ({ children, onClick, className = "", variant = "primary", disabl
 export default function PharmaSightDashboard({ drugs = [], predictions = [] }: { drugs: Drug[], predictions: Prediction[] }) {
   const [liveDrugs, setLiveDrugs] = useState<Drug[]>([]);
   const [livePredictions, setLivePredictions] = useState<Prediction[]>([]);
-  const [orders, setOrders] = useState<any[]>([]); // State for the Orders Section [cite: 217]
+  const [orders, setOrders] = useState<any[]>([]);
   const [search, setSearch] = useState<string>("");
   const [riskFilter, setRiskFilter] = useState<string>("ALL");
   const [loading, setLoading] = useState(true);
@@ -96,30 +96,6 @@ const fetchPredictions = async () => {
 
   setLivePredictions(predData);
 };
-
-  // Fetch Inventory and Orders Data
-  // useEffect(() => {
-  //   const loadData = async () => {
-  //     try {
-  //       setLoading(true);
-  //       // Fetch Drugs
-  //       const drugResponse = await apiRequest("/api/drugs", "GET");
-  //       const drugData = Array.isArray(drugResponse) ? drugResponse : drugResponse.data || [];
-  //       setLiveDrugs(drugData);
-
-  //       // Fetch Orders [cite: 217]
-  //       const orderResponse = await apiRequest("/api/orders", "GET");
-  //       setOrders(Array.isArray(orderResponse) ? orderResponse : []);
-        
-  //     } catch (err) {
-  //       console.error("Failed to load dashboard data:", err);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-    
-  //   loadData();
-  // }, []);
 
   useEffect(() => {
   const loadData = async () => {
@@ -327,10 +303,10 @@ const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         <DashboardCharts drugs={liveDrugs} />
       </div>
 
-      {/* NEW: Orders Section - Tracking functionality [cite: 151, 217]
+      {/* NEW: Orders Section - Tracking functionality [cite: 151, 217] */}
       <div className="mb-10">
-        <OrdersSection orders={orders} />
-      </div> */}
+        <OrdersSection orders={orders} setOrders={setOrders} />
+      </div>
 
       
       <AddDrugModal 
