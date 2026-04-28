@@ -29,6 +29,8 @@ type Batch = {
 };
 
 interface Drug {
+  usable_stock: number | undefined;
+  verified_stock: number | undefined;
   _id?: string;
   id?: string;
   name?: string;
@@ -46,7 +48,7 @@ interface Drug {
 }
 
 interface Prediction {
-  drugId: any;
+  drug: any;
   days_left: number;
   risk_level: 'HIGH' | 'MEDIUM' | 'LOW';
   confidence_score: number;
@@ -112,14 +114,50 @@ useEffect(() => {
   }
 }, [isOrderModalOpen]);
 
+useEffect(() => {
+  const fetchPredictions = async () => {
+    if (!liveDrugs.length) return;
+
+    const results = await Promise.all(
+      liveDrugs.map(async (drug) => {
+        try {
+          return await apiRequest("/predict", "POST", {
+            drug: drug.name || drug.drug,
+            counted_stock: drug.stock || drug.counted_stock || 0,
+            usable_stock: drug.usable_stock || drug.stock || 0,
+            verified_stock: drug.verified_stock || drug.stock || 0,
+            daily_usage: drug.usageHistory || drug.daily_usage || [1,1,1],
+            hospital_type: drug.hospitalType || drug.hospital_type || "rural",
+            cold_chain_intact:
+              drug.coldChainIntact ??
+              drug.cold_chain_intact ??
+              true,
+            batches: drug.batches || [],
+            region: drug.region || "Koraput"
+          });
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    setLivePredictions(results.filter(Boolean));
+  };
+
+  fetchPredictions();
+}, [liveDrugs]);
+
   const filteredData = liveDrugs.filter((item) => {
     const name = item.name || item.drug || "";
     const matchesSearch = name.toLowerCase().includes(search.toLowerCase());
     const drugId = item._id || item.id;
-    const pred = livePredictions.find((p) => 
-      (typeof p.drugId === 'string' ? p.drugId === drugId : p.drugId?._id === drugId)
-    );
-    const risk = pred?.risk_level || "LOW";
+    // const pred = livePredictions.find((p) => 
+    //   (typeof p.drug === 'string' ? p.drug === drugId : p.drug?._id === drugId)
+    // );
+    const pred = livePredictions.find((p) =>
+  p.drug?.toLowerCase() === name.toLowerCase()
+);
+    const risk = pred?.risk_level;
     return riskFilter === "ALL" ? matchesSearch : matchesSearch && risk === riskFilter;
   });
 
@@ -179,9 +217,17 @@ const handlePlaceOrder = async () => {
               const stock = item.stock ?? item.counted_stock ?? 0;
               const drugId = item._id || item.id;
               const pred = livePredictions.find((p) => 
-                (typeof p.drugId === 'string' ? p.drugId === drugId : p.drugId?._id === drugId)
-              );
-              const risk = pred?.risk_level || (stock < 50 ? "HIGH" : "LOW"); // Fallback logic [cite: 132]
+                (typeof p.drug === 'string' ? p.drug === drugId : p.drug?._id === drugId)
+              );    
+              const usage =
+                item.daily_usage ? item.daily_usage.reduce((a, b) => a + b, 0) / item.daily_usage.length : (item.usageHistory?.length
+                ? item.usageHistory.reduce((a, b) => a + b, 0) / item.usageHistory.length
+                : 1);
+
+              const daysLeft = stock / usage;
+
+              const risk =  pred?.risk_level || (daysLeft <= 7 ? "HIGH" : daysLeft <= 14 ? "MEDIUM" : "LOW");
+              // const risk = pred?.risk_level || (stock < 50 ? "HIGH" : "LOW"); // Fallback logic [cite: 132]
 
               return (
                 <tr key={drugId || name} className="hover:bg-slate-50 transition-colors">
@@ -191,9 +237,18 @@ const handlePlaceOrder = async () => {
                   </td>
                   <td className="px-6 py-4 font-medium">{stock} units</td>
                   <td className="px-6 py-4">
-                    <Badge variant={risk === "HIGH" ? "destructive" : "secondary"}>
-                      {risk} RISK
-                    </Badge>
+                    <Badge
+  variant="secondary"
+  className={
+    risk === "HIGH"
+      ? "bg-red-100 text-red-700 border border-red-200 hover:bg-red-100"
+      : risk === "MEDIUM"
+      ? "bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-100"
+      : "bg-green-100 text-green-700 border border-green-200 hover:bg-green-100"
+  }
+>
+  {risk} RISK
+</Badge>
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
                     <Button 

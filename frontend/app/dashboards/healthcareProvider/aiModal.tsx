@@ -1,4 +1,5 @@
-
+"user client";
+//aiModal.tsx
 import React, { useState, useMemo, useRef } from 'react';
 import { 
   ShieldCheck,Plus, X, Loader2,

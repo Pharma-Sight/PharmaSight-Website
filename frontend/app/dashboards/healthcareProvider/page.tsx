@@ -15,14 +15,20 @@ import Papa from 'papaparse';
 
 // --- STAGE 1: FULLY TYPED INTERFACES ---
 interface Drug {
-  _id: string;
-  name: string;
-  stock: number;
-  dailyUsage: number;
-  usageHistory: number[];
-  hospitalType: 'rural' | 'urban';
-  organizationId: string;
-  coldChainIntact: boolean;
+  usable_stock: number | undefined;
+  verified_stock: number | undefined;
+  _id?: string;
+  id?: string;
+  name?: string;
+  drug?: string;
+  stock?: number;
+  counted_stock?: number;
+  usageHistory?: number[];
+  daily_usage?: number[];
+  hospitalType?: 'rural' | 'urban';
+  hospital_type?: 'rural' | 'urban';
+  coldChainIntact?: boolean;
+  cold_chain_intact?: boolean;
   region?: string;
   batches: Batch[];
 }
@@ -36,6 +42,7 @@ interface Prediction {
     quantity: number;
     supplier: string;
   };
+  drug: Drug;
 }
 
 type Batch = {
@@ -76,7 +83,7 @@ export default function PharmaSightDashboard({ drugs = [], predictions = [] }: {
   const [toast, setToast] = useState<{show: boolean, msg: string}>({ show: false, msg: "" });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const [user, setUser] = useState<any>(null); // State to hold logged-in user data
   const fetchInventory = async () => {
   const drugResponse = await apiRequest("/api/drugs", "GET");
   console.log(drugResponse);
@@ -118,6 +125,20 @@ const fetchPredictions = async () => {
   loadData();
 }, []);
 
+useEffect(() => {
+  const fetchUserData = async () => {
+    try {
+      // Replace with your actual profile endpoint
+      const response = await apiRequest("/api/auth/getUser", "GET"); 
+      setUser(response); 
+    } catch (error) {
+      console.error("Failed to fetch user data", error);
+    }
+  };
+
+  fetchUserData();
+}, []);
+
   const criticalPred = useMemo(() => 
     livePredictions.length > 0 
       ? [...livePredictions].sort((a, b) => a.days_left - b.days_left)[0] 
@@ -157,16 +178,66 @@ const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         for (const drugData of drugs) {
           try {
             // Fix 2: Clean data types (numbers/bools) before sending to backend 
-            const payload = {
-              name: drugData.name || drugData.drug,
-              stock: Number(drugData.stock || 0),
-              dailyUsage: Number(drugData.dailyUsage || 1),
-              usageHistory: drugData.usageHistory ? JSON.parse(drugData.usageHistory) : [0, 0, 0],
-              hospitalType: drugData.hospitalType || "rural",
-              coldChainIntact: String(drugData.coldChainIntact).toLowerCase() === 'true',
-              region: drugData.region || "Default Region",
-              batches: drugData.batches ? JSON.parse(drugData.batches) : []
-            };
+            // const payload = {
+            //   name: drugData.name || drugData.drug,
+            //   stock: Number(drugData.stock || 0),
+            //   dailyUsage: Number(drugData.dailyUsage || 1),
+            //   usageHistory: drugData.usageHistory ? JSON.parse(drugData.usageHistory) : [0, 0, 0],
+            //   hospitalType: drugData.hospitalType || "rural",
+            //   coldChainIntact: String(drugData.coldChainIntact).toLowerCase() === 'true',
+            //   region: drugData.region || "Default Region",
+            //   batches: drugData.batches ? JSON.parse(drugData.batches) : []
+            // };
+
+            const usageHistory =
+  drugData.usageHistory
+    ? JSON.parse(drugData.usageHistory)
+    : drugData.daily_usage
+      ? JSON.parse(drugData.daily_usage)
+      : [0, 0, 0];
+
+const payload = {
+  name: drugData.name || drugData.drug,
+
+  stock: Math.min(
+    Number(drugData.counted_stock || 0),
+    Number(drugData.usable_stock || 0),
+    Number(drugData.verified_stock || 0)
+  ),
+
+  dailyUsage:
+    Number(drugData.dailyUsage) ||
+    (
+      usageHistory.reduce((sum : number, val: any) => sum + Number(val), 0) /
+      Math.max(usageHistory.length, 1)
+    ),
+
+  usageHistory,
+
+  hospitalType:
+    drugData.hospitalType ||
+    drugData.hospital_type ||
+    "rural",
+
+  coldChainIntact:
+    String(
+      drugData.coldChainIntact ??
+      drugData.cold_chain_intact ??
+      true
+    ).toLowerCase() === "true",
+
+  region: drugData.region || "Default Region",
+
+  batches: drugData.batch_no
+    ? [
+        {
+          batch_no: drugData.batch_no,
+          expiry_date: drugData.expiry_date,
+          qty: Number(drugData.qty || 0)
+        }
+      ]
+    : []
+};
 
             await apiRequest("/api/drugs", "POST", payload);
             successCount++;
@@ -209,13 +280,17 @@ const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
 
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="bg-blue-600 p-1.5 rounded-lg"><Activity className="text-white h-5 w-5" /></div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-900">PharmaSight <span className="text-blue-600">Command</span></h1>
-          </div>
-          <p className="text-slate-500 text-sm font-medium italic">Healthcare Provider Control Center</p>
-        </div>
-
+  <div className="flex items-center gap-2 mb-1">
+    <div className="bg-blue-600 p-1.5 rounded-lg">
+      <Activity className="text-white h-5 w-5" />
+    </div>
+    {/* Updated: Displays the Organization Name from the logged-in user data */}
+    <h1 className="text-2xl font-black tracking-tight text-slate-900">
+      {user?.organizationId?.name || "PharmaSight"} <span className="text-blue-600">Command</span>
+    </h1>
+  </div>
+  <p className="text-slate-500 text-sm font-medium italic">Healthcare Provider Control Center</p>
+</div>
         <div className="flex gap-3">
            <input type="file" ref={fileInputRef} onChange={handleCSVUpload} accept=".csv" className="hidden" />
            <Button variant="secondary" onClick={() => setIsAddModalOpen(true)}>
@@ -231,22 +306,25 @@ const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-10">
         <Card className={`md:col-span-8 p-8 border-l-8 ${getAlertStatus(criticalPred?.days_left || 15).border} bg-white shadow-xl relative`}>
           <div className="flex justify-between items-start">
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-slate-500 mb-2">
-                  <Building2 className="h-4 w-4" />
-                  <span className="text-xs font-bold uppercase tracking-widest">Main General Hospital - {liveDrugs[0]?.hospitalType || "Urban"} Facility</span>
-                </div>
-                <Badge className={`${getAlertStatus(criticalPred?.days_left || 15).bg} ${getAlertStatus(criticalPred?.days_left || 15).color} border-none`}>
-                  High Urgency Prediction
-                </Badge>
-                <h2 className="text-4xl font-black text-slate-900">{criticalPred?.drugId.name || "System Stabilized"}</h2>
-              </div>
-            </div>
-            <div className={`p-4 rounded-2xl ${getAlertStatus(criticalPred?.days_left || 15).bg}`}>
-              {getAlertStatus(criticalPred?.days_left || 15).icon}
-            </div>
-          </div>
+  <div className="space-y-4">
+    <div className="space-y-1">
+      <div className="flex items-center gap-2 text-slate-500 mb-2">
+        <Building2 className="h-4 w-4" />
+        {/* Updated: Dynamically shows Healthcare Type and Organization Type (Urban/Rural) */}
+        <span className="text-xs font-bold uppercase tracking-widest">
+          Main General {user?.organizationId?.healthcaretype || "Hospital"} - {user?.organizationId?.organizationtype || "Urban"} Facility
+        </span>
+      </div>
+      <Badge className={`${getAlertStatus(criticalPred?.days_left || 15).bg} ${getAlertStatus(criticalPred?.days_left || 15).color} border-none`}>
+        High Urgency Prediction
+      </Badge>
+      <h2 className="text-4xl font-black text-slate-900">{criticalPred?.drugId.name || "System Stabilized"}</h2>
+    </div>
+  </div>
+  <div className={`p-4 rounded-2xl ${getAlertStatus(criticalPred?.days_left || 15).bg}`}>
+    {getAlertStatus(criticalPred?.days_left || 15).icon}
+  </div>
+</div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-10">
             <div>

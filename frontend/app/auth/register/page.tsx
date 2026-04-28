@@ -96,7 +96,7 @@ export default function RegisterPage() {
          </div>
 
          <div className="text-sm text-slate-400">
-           © 2026 PharmaSight AI.
+           © 2026 PharmaSight Website.
          </div>
        </div>
 
@@ -137,11 +137,34 @@ export default function RegisterPage() {
                 <Input id="password" type="password" required {...register("password")} className="rounded-xl border-slate-200" />
               </div>
 
-              {/* Organization & Location Row */}
+              {/* Organization & Location Row
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="organizationName">Organization</Label>
                   <Input id="organizationName" required {...register("organizationName")} className="rounded-xl border-slate-200" />
+                </div>
+                <Select >
+                  <SelectTrigger className="rounded-xl border-slate-200">
+                    <SelectValue placeholder="Select Healthcare type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="Healthcare Provider">Hospital</SelectItem>
+                    <SelectItem value="Pharmaceutical Supplier">Pharmacy</SelectItem>
+                    <SelectItem value="Pharmaceutical Supplier">Clinic</SelectItem>
+                  </SelectContent>
+                  </Select>
+                  <Select >
+                  <SelectTrigger className="rounded-xl border-slate-200">
+                    <SelectValue placeholder="Select Organization type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="Healthcare Provider">Urban</SelectItem>
+                    <SelectItem value="Pharmaceutical Supplier">Rural</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input id="address" required {...register("address")} className="rounded-xl border-slate-200" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="country">Country</Label>
@@ -154,10 +177,6 @@ export default function RegisterPage() {
                 <div className="space-y-2">
                   <Label htmlFor="city">City</Label>
                   <Input id="city" required {...register("city")} className="rounded-xl border-slate-200" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="district">District</Label>
-                  <Input id="district" {...register("district")} className="rounded-xl border-slate-200" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="pincode">Pincode</Label>
@@ -176,8 +195,89 @@ export default function RegisterPage() {
                     <SelectItem value="Pharmaceutical Supplier">Pharmaceutical Supplier</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
+              </div>*/}
+              {/* Organization & Location Row */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="organizationName">Organization</Label>
+                      <Input 
+                        id="organizationName" 
+                        required 
+                        {...register("organizationName")} 
+                        className="rounded-xl border-slate-200" 
+                      />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Healthcare Type</Label>
+                      <Select onValueChange={(value) => setValue("healthcaretype", value)} required>
+                        <SelectTrigger className="rounded-xl border-slate-200">
+                          <SelectValue placeholder="Select Healthcare type" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white">
+                          <SelectItem value="Hospital">Hospital</SelectItem>
+                          <SelectItem value="Clinic">Clinic</SelectItem>
+                          <SelectItem value="Pharmacy">Pharmacy</SelectItem>
+                        </SelectContent>
+                      </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                  <Label>Organization Type</Label>
+                    <Select onValueChange={(value) => setValue("organizationtype", value)} required>
+                      <SelectTrigger className="rounded-xl border-slate-200">
+                        <SelectValue placeholder="Select Organization type" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white">
+                        <SelectItem value="Urban">Urban</SelectItem>
+                        <SelectItem value="Rural">Rural</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+  <div className="space-y-2">
+    <Label htmlFor="address">Address</Label>
+    <Input 
+      id="address" 
+      required 
+      {...register("address")} 
+      className="rounded-xl border-slate-200" 
+    />
+  </div>
+
+  {/* ... Country, State, City, Pincode fields remain the same ... */}
+  <div className="space-y-2">
+    <Label htmlFor="country">Country</Label>
+    <Input id="country" required {...register("country")} className="rounded-xl border-slate-200" />
+  </div>
+  <div className="space-y-2">
+    <Label htmlFor="state">State</Label>
+    <Input id="state" required {...register("state")} className="rounded-xl border-slate-200" />
+  </div>
+  <div className="space-y-2">
+    <Label htmlFor="city">City</Label>
+    <Input id="city" required {...register("city")} className="rounded-xl border-slate-200" />
+  </div>
+  <div className="space-y-2">
+    <Label htmlFor="pincode">Pincode</Label>
+    <Input id="pincode" required {...register("pincode")} className="rounded-xl border-slate-200" />
+  </div>
+</div>
+
+{/* Keep your original Role dropdown as is */}
+<div className="space-y-2 mt-4">
+  <Label htmlFor="role">Your Role</Label>
+  <Select onValueChange={(value) => setValue("role", value)} required>
+    <SelectTrigger className="rounded-xl border-slate-200">
+      <SelectValue placeholder="Select organization type" />
+    </SelectTrigger>
+    <SelectContent className="bg-white">
+      <SelectItem value="Healthcare Provider">Healthcare Provider</SelectItem>
+      <SelectItem value="Pharmaceutical Supplier">Pharmaceutical Supplier</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
+            </div> 
 
             <Button 
               type="submit"
@@ -193,3 +293,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+
