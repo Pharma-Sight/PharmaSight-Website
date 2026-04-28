@@ -14,16 +14,6 @@ const organizationSchema = new mongoose.Schema(
       enum: ["Healthcare Provider", "Pharmaceutical Supplier", "admin"],
       required: true
     },
-    healthcaretype: {
-      type: String,
-      enum: ["Hospital", "Clinic", "Pharmacy"],
-      required: true
-    },
-    organizationtype: {
-      type: String,
-      enum: ["Urban", "Rural"],
-      required: true
-    },
 
     location: {
       country: { type: String, trim: true },
