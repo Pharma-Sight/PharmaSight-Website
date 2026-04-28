@@ -9,6 +9,17 @@ import { predictions } from "./services/ai.service.js";
 import orderRoutes from "./routes/order.routes.js";
 import organizationRoutes from "./routes/organization.routes.js"; 
 
+app.use(cors({
+  origin: [
+    "https://pharma-sight-website.vercel.app",
+    "http://localhost:3000"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true
+}));
+
+app.use(express.json());
+
 dotenv.config();
 const app = express();
 const PORT = 5000;
@@ -22,14 +33,6 @@ const connectDB = async () => {
   }
 };
 
-app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "https://pharma-sight-website.vercel.app/"
-  ],
-  credentials: true
-}));
-app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/drugs", drugRoutes);
 app.use("/api/predictions", predictionRoutes);
