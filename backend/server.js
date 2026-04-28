@@ -9,6 +9,9 @@ import { predictions } from "./services/ai.service.js";
 import orderRoutes from "./routes/order.routes.js";
 import organizationRoutes from "./routes/organization.routes.js"; 
 
+
+dotenv.config();
+const app = express();
 app.use(cors({
   origin: [
     "https://pharma-sight-website.vercel.app",
@@ -19,9 +22,6 @@ app.use(cors({
 }));
 
 app.use(express.json());
-
-dotenv.config();
-const app = express();
 const PORT = 5000;
 const connectDB = async () => {
   try {
