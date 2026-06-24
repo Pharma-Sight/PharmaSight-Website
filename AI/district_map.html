@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MediTrace — Odisha District Shortage Map</title>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+    z-index: 1000;
+  }
+
+  .logo {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: #58a6ff;
+  }
+
+  .logo span { color: #3fb950; }
+
+  .header-subtitle {
+    font-size: 12px;
+    color: #8b949e;
+  }
+
+  /* ── Stat cards ── */
+  .stats-bar {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+  }
+
+  .stat-card {
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 6px 14px;
+    text-align: center;
+    min-width: 80px;
+  }
+
+  .stat-card .val {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .stat-card .lbl {
+    font-size: 10px;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .stat-card.high  .val { color: #f85149; }
+  .stat-card.med   .val { color: #e3b341; }
+  .stat-card.low   .val { color: #3fb950; }
+  .stat-card.waste .val { color: #f0883e; font-size: 15px; }
+
+  /* ── Main layout ── */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 320px;
+    background: #161b22;
+    border-right: 1px solid #30363d;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid #30363d;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8b949e;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── Filter buttons ── */
+  .filter-bar {
+    display: flex;
+    gap: 6px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #30363d;
+    flex-shrink: 0;
+  }
+
+  .filter-btn {
+    flex: 1;
+    padding: 5px 0;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    background: #21262d;
+    color: #e6edf3;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-btn:hover { filter: brightness(1.2); }
+  .filter-btn.active-high  { background: rgba(248,81,73,0.2);  border-color: #f85149; color: #f85149; }
+  .filter-btn.active-med   { background: rgba(227,179,65,0.2); border-color: #e3b341; color: #e3b341; }
+  .filter-btn.active-low   { background: rgba(63,185,80,0.2);  border-color: #3fb950; color: #3fb950; }
+  .filter-btn.active-all   { background: rgba(88,166,255,0.2); border-color: #58a6ff; color: #58a6ff; }
+
+  /* ── Hospital list ── */
+  .hospital-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+
+  .hospital-list::-webkit-scrollbar { width: 4px; }
+  .hospital-list::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+
+  .hospital-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid #21262d;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .hospital-item:hover { background: #21262d; }
+  .hospital-item.selected { background: #1c2128; border-left: 3px solid #58a6ff; }
+
+  .h-name {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .h-meta {
+    font-size: 11px;
+    color: #8b949e;
+    display: flex;
+    gap: 8px;
+  }
+
+  .risk-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .risk-dot.HIGH   { background: #f85149; box-shadow: 0 0 4px #f85149; }
+  .risk-dot.MEDIUM { background: #e3b341; box-shadow: 0 0 4px #e3b341; }
+  .risk-dot.LOW    { background: #3fb950; box-shadow: 0 0 4px #3fb950; }
+
+  .days-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+
+  .days-badge.HIGH   { background: rgba(248,81,73,0.15);  color: #f85149; }
+  .days-badge.MEDIUM { background: rgba(227,179,65,0.15); color: #e3b341; }
+  .days-badge.LOW    { background: rgba(63,185,80,0.15);  color: #3fb950; }
+
+  /* ── Map ── */
+  #map {
+    flex: 1;
+    background: #161b22;
+  }
+
+  /* ── Leaflet custom marker ── */
+  .custom-marker {
+    border-radius: 50%;
+    border: 2px solid rgba(0,0,0,0.4);
+    transition: transform 0.15s;
+  }
+
+  /* ── Popup ── */
+  .leaflet-popup-content-wrapper {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #e6edf3;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+
+  .leaflet-popup-tip { background: #21262d; }
+
+  .popup-inner { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+
+  .popup-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #30363d;
+  }
+
+  .popup-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 5px;
+    gap: 12px;
+  }
+
+  .popup-label { color: #8b949e; }
+
+  .popup-val { font-weight: 500; }
+
+  .popup-val.HIGH   { color: #f85149; }
+  .popup-val.MEDIUM { color: #e3b341; }
+  .popup-val.LOW    { color: #3fb950; }
+
+  .popup-warning {
+    margin-top: 8px;
+    padding: 6px 8px;
+    background: rgba(227,179,65,0.1);
+    border-left: 3px solid #e3b341;
+    font-size: 11px;
+    color: #e3b341;
+    border-radius: 0 4px 4px 0;
+    line-height: 1.5;
+  }
+
+  .popup-warning.critical {
+    background: rgba(248,81,73,0.1);
+    border-left-color: #f85149;
+    color: #f85149;
+  }
+
+  /* ── Legend ── */
+  .map-legend {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 11px;
+  }
+
+  .map-legend h4 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8b949e;
+    margin-bottom: 8px;
+  }
+
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+    color: #e6edf3;
+  }
+
+  /* ── Loading / error overlay ── */
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: #0d1117;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #30363d;
+    border-top-color: #58a6ff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .overlay-text { font-size: 14px; color: #8b949e; }
+
+  #error-banner {
+    display: none;
+    background: rgba(248,81,73,0.1);
+    border: 1px solid #f85149;
+    color: #f85149;
+    padding: 10px 16px;
+    font-size: 13px;
+    border-radius: 6px;
+    margin: 10px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="overlay">
+  <div class="spinner"></div>
+  <div class="overlay-text">Loading district risk data…</div>
+</div>
+
+<!-- Header -->
+<header>
+  <div>
+    <div class="logo">Medi<span>Trace</span></div>
+    <div class="header-subtitle">Live District Shortage Monitor — Odisha</div>
+  </div>
+  <div class="stats-bar">
+    <div class="stat-card high">
+      <div class="val" id="stat-high">—</div>
+      <div class="lbl">HIGH</div>
+    </div>
+    <div class="stat-card med">
+      <div class="val" id="stat-med">—</div>
+      <div class="lbl">MEDIUM</div>
+    </div>
+    <div class="stat-card low">
+      <div class="val" id="stat-low">—</div>
+      <div class="lbl">LOW</div>
+    </div>
+    <div class="stat-card waste">
+      <div class="val" id="stat-waste">—</div>
+      <div class="lbl">Wastage ₹</div>
+    </div>
+  </div>
+</header>
+
+<div id="error-banner"></div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      🏥 Hospitals
+      <span id="hospital-count" style="margin-left:auto;font-weight:400;color:#e6edf3">0</span>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-btn active-all" onclick="applyFilter('ALL', this)">All</button>
+      <button class="filter-btn" onclick="applyFilter('HIGH', this)">High</button>
+      <button class="filter-btn" onclick="applyFilter('MEDIUM', this)">Med</button>
+      <button class="filter-btn" onclick="applyFilter('LOW', this)">Low</button>
+    </div>
+    <div class="hospital-list" id="hospital-list"></div>
+  </div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+</div>
+
+<script>
+// ──────────────────────────────────────────────────────────────────────────────
+// CONFIG — change API_BASE if your FastAPI server runs on a different port
+// ──────────────────────────────────────────────────────────────────────────────
+const API_BASE = "https://pharma-site-ai.onrender.com";
+
+// ──────────────────────────────────────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────────────────────────────────────
+let allHospitals   = [];
+let filteredList   = [];
+let markerMap      = {};      // hospital_id → Leaflet marker
+let activeFilter   = "ALL";
+let selectedId     = null;
+
+// ──────────────────────────────────────────────────────────────────────────────
+// MAP INIT
+// ──────────────────────────────────────────────────────────────────────────────
+const map = L.map("map", {
+  center: [20.5, 84.5],
+  zoom: 7,
+  zoomControl: true,
+});
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+  maxZoom: 18,
+}).addTo(map);
+
+// Legend
+const legend = L.control({ position: "bottomright" });
+legend.onAdd = () => {
+  const div = L.DomUtil.create("div", "map-legend");
+  div.innerHTML = `
+    <h4>Risk Level</h4>
+    <div class="legend-row"><span class="risk-dot HIGH"></span> HIGH — ≤ 7 days stock</div>
+    <div class="legend-row"><span class="risk-dot MEDIUM"></span> MEDIUM — ≤ 14 days</div>
+    <div class="legend-row"><span class="risk-dot LOW"></span> LOW — &gt; 14 days</div>
+    <div style="margin-top:8px;padding-top:6px;border-top:1px solid #30363d;font-size:10px;color:#8b949e">
+      ● Urban &nbsp;◉ Rural
+    </div>
+  `;
+  return div;
+};
+legend.addTo(map);
+
+// ──────────────────────────────────────────────────────────────────────────────
+// COLOURS
+// ──────────────────────────────────────────────────────────────────────────────
+const RISK_COLOR = { HIGH: "#f85149", MEDIUM: "#e3b341", LOW: "#3fb950" };
+const RISK_GLOW  = {
+  HIGH:   "0 0 0 3px rgba(248,81,73,0.3)",
+  MEDIUM: "0 0 0 3px rgba(227,179,65,0.3)",
+  LOW:    "0 0 0 3px rgba(63,185,80,0.3)",
+};
+
+// ──────────────────────────────────────────────────────────────────────────────
+// CREATE MARKER
+// ──────────────────────────────────────────────────────────────────────────────
+function makeMarker(h) {
+  const size    = h.type === "urban" ? 18 : 13;
+  const color   = RISK_COLOR[h.risk] || "#8b949e";
+  const opacity = h.type === "urban" ? 0.9 : 0.75;
+
+  const icon = L.divIcon({
+    className: "",
+    html: `<div class="custom-marker" style="
+      width:${size}px; height:${size}px;
+      background:${color};
+      opacity:${opacity};
+      box-shadow: ${RISK_GLOW[h.risk]};
+    "></div>`,
+    iconSize:   [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+
+  const marker = L.marker([h.lat, h.lng], { icon }).addTo(map);
+
+  marker.bindPopup(buildPopup(h), {
+    maxWidth: 300,
+    className: "meditrace-popup",
+  });
+
+  marker.on("click", () => selectHospital(h.hospital_id));
+
+  return marker;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// POPUP HTML
+// ──────────────────────────────────────────────────────────────────────────────
+function buildPopup(h) {
+  const warningsHtml = h.warnings.length
+    ? h.warnings.map(w => {
+        const cls = w.includes("Cold chain") || w.includes("reliability") ? "critical" : "";
+        return `<div class="popup-warning ${cls}">${w}</div>`;
+      }).join("")
+    : "";
+
+  const wastageHtml = h.wastage_value_inr > 0
+    ? `<div class="popup-row">
+         <span class="popup-label">Wastage risk</span>
+         <span class="popup-val" style="color:#f0883e">₹${h.wastage_value_inr.toLocaleString("en-IN")}</span>
+       </div>`
+    : "";
+
+  return `
+    <div class="popup-inner">
+      <div class="popup-title">
+        <span class="risk-dot ${h.risk}" style="width:10px;height:10px;display:inline-block;border-radius:50%;margin-right:6px;"></span>
+        ${h.name}
+      </div>
+      <div class="popup-row">
+        <span class="popup-label">District</span>
+        <span class="popup-val">${h.district}</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-label">Risk level</span>
+        <span class="popup-val ${h.risk}">${h.risk}</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-label">Drug at risk</span>
+        <span class="popup-val">${h.drug_at_risk}</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-label">Days left</span>
+        <span class="popup-val ${h.risk}">${h.days_left} days</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-label">Facility type</span>
+        <span class="popup-val">${h.type} · ${h.income} income</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-label">Patient load</span>
+        <span class="popup-val">${h.patient_load.toLocaleString("en-IN")}/day</span>
+      </div>
+      ${wastageHtml}
+      ${warningsHtml}
+    </div>
+  `;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// SIDEBAR LIST
+// ──────────────────────────────────────────────────────────────────────────────
+function renderSidebar(list) {
+  const container = document.getElementById("hospital-list");
+  document.getElementById("hospital-count").textContent = list.length;
+
+  container.innerHTML = list.map(h => `
+    <div class="hospital-item ${selectedId === h.hospital_id ? "selected" : ""}"
+         id="li-${h.hospital_id}"
+         onclick="selectHospital('${h.hospital_id}')">
+      <div class="h-name">
+        <span class="risk-dot ${h.risk}"></span>
+        ${h.name}
+        <span class="days-badge ${h.risk}">${h.days_left}d</span>
+      </div>
+      <div class="h-meta">
+        <span>${h.district}</span>
+        <span>·</span>
+        <span>${h.drug}</span>
+        <span>·</span>
+        <span>${h.type}</span>
+        ${h.phantom_stock_flag ? '<span style="color:#f0883e">⚠ phantom</span>' : ""}
+      </div>
+    </div>
+  `).join("");
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// SELECT HOSPITAL — syncs map + sidebar
+// ──────────────────────────────────────────────────────────────────────────────
+function selectHospital(id) {
+  selectedId = id;
+  const h = allHospitals.find(x => x.hospital_id === id);
+  if (!h) return;
+
+  // Fly map to hospital
+  map.flyTo([h.lat, h.lng], 10, { duration: 0.8 });
+  markerMap[id]?.openPopup();
+
+  // Highlight sidebar item
+  document.querySelectorAll(".hospital-item").forEach(el => el.classList.remove("selected"));
+  const el = document.getElementById(`li-${id}`);
+  if (el) {
+    el.classList.add("selected");
+    el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// FILTER
+// ──────────────────────────────────────────────────────────────────────────────
+function applyFilter(level, btn) {
+  activeFilter = level;
+  document.querySelectorAll(".filter-btn").forEach(b => b.className = "filter-btn");
+
+  if (level === "ALL")    btn.classList.add("active-all");
+  if (level === "HIGH")   btn.classList.add("active-high");
+  if (level === "MEDIUM") btn.classList.add("active-med");
+  if (level === "LOW")    btn.classList.add("active-low");
+
+  filteredList = level === "ALL"
+    ? allHospitals
+    : allHospitals.filter(h => h.risk === level);
+
+  // Show/hide markers
+  Object.entries(markerMap).forEach(([id, marker]) => {
+    const h = allHospitals.find(x => x.hospital_id === id);
+    if (!h) return;
+    const show = level === "ALL" || h.risk === level;
+    if (show && !map.hasLayer(marker)) map.addLayer(marker);
+    if (!show && map.hasLayer(marker)) map.removeLayer(marker);
+  });
+
+  renderSidebar(filteredList);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// HEADER STATS
+// ──────────────────────────────────────────────────────────────────────────────
+function updateStats(hospitals) {
+  document.getElementById("stat-high").textContent =
+    hospitals.filter(h => h.risk === "HIGH").length;
+  document.getElementById("stat-med").textContent =
+    hospitals.filter(h => h.risk === "MEDIUM").length;
+  document.getElementById("stat-low").textContent =
+    hospitals.filter(h => h.risk === "LOW").length;
+
+  const totalWastage = hospitals.reduce((s, h) => s + (h.wastage_value_inr || 0), 0);
+  document.getElementById("stat-waste").textContent =
+    "₹" + totalWastage.toLocaleString("en-IN", { maximumFractionDigits: 0 });
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// FETCH FROM API  (falls back to embedded mock if API is unreachable)
+// ──────────────────────────────────────────────────────────────────────────────
+async function loadData() {
+  let hospitals;
+
+  try {
+    const res = await fetch(`${API_BASE}/district-risk`, {
+      headers: { "Accept": "application/json" },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    hospitals = await res.json();
+  } catch (err) {
+    console.warn("API unreachable, using embedded mock data:", err.message);
+    // ── Embedded mock (same as hospitals.json computed payload) ────────────
+    // In production this block is never reached — the API serves live data.
+    hospitals = MOCK_DATA;
+  }
+
+  allHospitals = hospitals;
+  filteredList = hospitals;
+
+  // Build markers
+  hospitals.forEach(h => {
+    markerMap[h.hospital_id] = makeMarker(h);
+  });
+
+  updateStats(hospitals);
+  renderSidebar(hospitals);
+
+  // Hide loading overlay
+  document.getElementById("overlay").style.display = "none";
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// EMBEDDED MOCK DATA
+// This is a pre-computed version of what district_map.py returns.
+// Your teammate can open this HTML file with no backend running and the map
+// will still work. Once the FastAPI server is live, it uses real data.
+// ──────────────────────────────────────────────────────────────────────────────
+const MOCK_DATA = [
+  {
+    hospital_id:"MKG-002", name:"Malkangiri PHC", district:"Malkangiri",
+    lat:18.352, lng:81.8987, type:"rural", income:"low", patient_load:180,
+    drug:"Insulin", drug_at_risk:"Insulin", days_left:0,
+    risk:"HIGH", effective_stock:0, avg_daily_usage:9.33,
+    cold_chain_ok:false, cold_chain_compromised:true,
+    wastage_value_inr:4500, expiring_soon_count:2, phantom_stock_flag:false,
+    warnings:["Cold chain broken — all Insulin batches may be compromised.","2 batch(es) expiring within 60 days (60 units). Usable stock adjusted."]
+  },
+  {
+    hospital_id:"KRC-001", name:"Koraput District Hospital", district:"Koraput",
+    lat:18.8135, lng:82.7111, type:"rural", income:"low", patient_load:320,
+    drug:"Amoxicillin", drug_at_risk:"Amoxicillin", days_left:5.5,
+    risk:"HIGH", effective_stock:90, avg_daily_usage:16.76,
+    cold_chain_ok:true, cold_chain_compromised:false,
+    wastage_value_inr:600, expiring_soon_count:1, phantom_stock_flag:false,
+    warnings:["1 batch(es) expiring within 60 days (40 units). Usable stock adjusted."]
+  },
+  {
+    hospital_id:"GJM-009", name:"Gajapati PHC Parlakhemundi", district:"Gajapati",
+    lat:18.7794, lng:84.0956, type:"rural", income:"low", patient_load:140,
+    drug:"Oxytocin", drug_at_risk:"Oxytocin", days_left:0,
+    risk:"HIGH", effective_stock:0, avg_daily_usage:6.71,
+    cold_chain_ok:false, cold_chain_compromised:true,
+    wastage_value_inr:5400, expiring_soon_count:2, phantom_stock_flag:false,
+    warnings:["Cold chain broken — all Oxytocin batches may be compromised.","2 batch(es) expiring within 60 days (45 units). Usable stock adjusted."]
+  },
+  {
+    hospital_id:"KNK-011", name:"Kandhamal District Hospital", district:"Kandhamal",
+    lat:20.4678, lng:84.2305, type:"rural", income:"low", patient_load:290,
+    drug:"Insulin", drug_at_risk:"Insulin", days_left:5.2,
+    risk:"HIGH", effective_stock:65, avg_daily_usage:12.57,
+    cold_chain_ok:true, cold_chain_compromised:false,
+    wastage_value_inr:6300, expiring_soon_count:1, phantom_stock_flag:false,
+    warnings:["1 batch(es) expiring within 60 days (35 units). Usable stock adjusted."]
+  },
+  {
+    hospital_id:"DKL-013", name:"Deogarh PHC", district:"Deogarh",
+    lat:21.5385, lng:84.7337, type:"rural", income:"low", patient_load:110,
+    drug:"Paracetamol", drug_at_risk:"Paracetamol", days_left:5.4,
+    risk:"HIGH", effective_stock:75, avg_daily_usage:12.29,
+    cold_chain_ok:true, cold_chain_compromised:false,
+    wastage_value_inr:200, expiring_soon_count:1, phantom_stock_flag:false,
+    warnings:["1 batch(es) expiring within 60 days (40 units). Usable stock adjusted."]
+  },
+  {
+    hospital_id:"KLH-004", name:"Kalahandi District Hospital", district:"Kalahandi",
+    lat:19.9165, lng:83.1711, type:"rural", income:"low", patient_load:410,
+    drug:"Amoxicillin", drug_at_risk:"Amoxicillin", days_left:11.2,
+    risk:"MEDIUM", effective_stock:160, avg_daily_usage:14.03,
+    cold_chain_ok:true, cold_chain_compromised:false,
+    wastage_value_inr:1200, expiring_soon_count:1, phantom_stock_flag:false,
+    warnings:["1 batch(es) expiring within 60 days (80 units). Usable stock adjusted."]
+  },
+  {
+    hospital_id:"CTC-007", name:"SCB Medical College Cuttack", district:"Cuttack",
+    lat:20.4625, lng:85.883, type:"urban", income:"mixed", patient_load:1800,
+    drug:"Insulin", drug_at_risk:"Insulin", days_left:13.5,
+    risk:"MEDIUM", effective_stock:270, avg_daily_usage:19.57,
+    cold_chain_ok:true, cold_chain_compromised:false,
+    wastage_value_inr:27000, expiring_soon_count:1, phantom_stock_flag:false,
+    warnings:["1 batch(es) expiring within 60 days (150 units). Usable stock adjusted."]
+  },
+  {
+    hospital_id:"RYG-003", name:"Rayagada Community Health Centre", district:"Rayagada",
+    lat:19.1711, lng:83.4159, type:"rural", income:"low", patient_load:250,
+    drug:"Paracetamol", drug_at_risk:"Paracetamol", days_left:16.3,
+    risk:"LOW", effective_stock:760, avg_daily_usage:47.43,
+    cold_chain_ok:true, cold_chain_compromised:false,
+    wastage_value_inr:0, expiring_soon_count:0, phantom_stock_flag:false,
+    warnings:[]
+  },
+  {
+    hospital_id:"NWR-010", name:"Nabarangpur CHC", district:"Nabarangpur",
+    lat:19.2315, lng:82.5476, type:"rural", income:"low", patient_load:200,
+    drug:"Amoxicillin", drug_at_risk:"Amoxicillin", days_left:15.6,
+    risk:"LOW", effective_stock:330, avg_daily_usage:21.0,
+    cold_chain_ok:true, cold_chain_compromised:false,
+    wastage_value_inr:0, expiring_soon_count:0, phantom_stock_flag:false,
+    warnings:[]
+  },
+  {
+    hospital_id:"BGR-014", name:"Boudh Gramya Hospital", district:"Boudh",
+    lat:20.8379, lng:84.3242, type:"rural", income:"low", patient_load:160,
+    drug:"Amoxicillin", drug_at_risk:"Amoxicillin", days_left:15.7,
+    risk:"LOW", effective_stock:460, avg_daily_usage:29.21,
+    cold_chain_ok:true, cold_chain_compromised:false,
+    wastage_value_inr:0, expiring_soon_count:0, phantom_stock_flag:false,
+    warnings:[]
+  },
+  {
+    hospital_id:"BBR-005", name:"VIMSAR Burla", district:"Sambalpur",
+    lat:21.1938, lng:83.867, type:"urban", income:"mixed", patient_load:1200,
+    drug:"Metformin", drug_at_risk:"Metformin", days_left:20.0,
+    risk:"LOW", effective_stock:2400, avg_daily_usage:119.14,
+    cold_chain_ok:true, cold_chain_compromised:false,
+    wastage_value_inr:0, expiring_soon_count:0, phantom_stock_flag:false,
+    warnings:[]
+  },
+  {
+    hospital_id:"BBN-006", name:"Bhubaneswar Capital Hospital", district:"Khordha",
+    lat:20.2961, lng:85.8245, type:"urban", income:"high", patient_load:2100,
+    drug:"Metformin", drug_at_risk:"Metformin", days_left:24.0,
+    risk:"LOW", effective_stock:4850, avg_daily_usage:204.0,
+    cold_chain_ok:true, cold_chain_compromised:false,
+    wastage_value_inr:0, expiring_soon_count:0, phantom_stock_flag:false,
+    warnings:[]
+  },
+  {
+    hospital_id:"SND-008", name:"Sundargarh District Hospital", district:"Sundargarh",
+    lat:22.1178, lng:84.0305, type:"urban", income:"mixed", patient_load:620,
+    drug:"Paracetamol", drug_at_risk:"Paracetamol", days_left:21.1,
+    risk:"LOW", effective_stock:1700, avg_daily_usage:82.71,
+    cold_chain_ok:true, cold_chain_compromised:false,
+    wastage_value_inr:0, expiring_soon_count:0, phantom_stock_flag:false,
+    warnings:[]
+  },
+  {
+    hospital_id:"BLS-012", name:"Balasore District Hospital", district:"Balasore",
+    lat:21.4942, lng:86.9354, type:"urban", income:"mixed", patient_load:750,
+    drug:"Metformin", drug_at_risk:"Metformin", days_left:20.8,
+    risk:"LOW", effective_stock:1500, avg_daily_usage:71.86,
+    cold_chain_ok:true, cold_chain_compromised:false,
+    wastage_value_inr:0, expiring_soon_count:0, phantom_stock_flag:false,
+    warnings:[]
+  },
+  {
+    hospital_id:"ANL-015", name:"Angul Sub-Divisional Hospital", district:"Angul",
+    lat:20.8404, lng:85.1008, type:"urban", income:"mixed", patient_load:520,
+    drug:"Metformin", drug_at_risk:"Metformin", days_left:17.9,
+    risk:"LOW", effective_stock:1000, avg_daily_usage:57.0,
+    cold_chain_ok:true, cold_chain_compromised:false,
+    wastage_value_inr:0, expiring_soon_count:0, phantom_stock_flag:false,
+    warnings:[]
+  },
+];
+
+// ──────────────────────────────────────────────────────────────────────────────
+// BOOT
+// ──────────────────────────────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
